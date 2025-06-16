@@ -1,7 +1,7 @@
 Feature: Add New Team Functionality
 
     Background:
-      Given User is logged in with valid credentials
+      Given User is logged in with valid credentials in dashboard
 
     Scenario: User adds a new team successfully
       When User scrolls down on the homepage and clicks on add new team button

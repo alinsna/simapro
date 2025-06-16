@@ -29,7 +29,7 @@ public class Hooks {
         test = extent.createTest(scenario.getName());
         context.setTest(test);
         context.setDriver(new ChromeDriver());
-        context.getDriver().manage().window().maximize();
+//        context.getDriver().manage().window().maximize();
         test.log(Status.INFO, "Scenario Started: " + scenario.getName());
     }
 
