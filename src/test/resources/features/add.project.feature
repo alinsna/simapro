@@ -8,8 +8,8 @@ Feature: Add New Project Functionality
       | Field       | Value                          |
       | Project Name| Proyek Otomasi Dengan Selenium |
       | Year        | 2023                           |
-      | Stakeholder | 2                |
-      | Group Name  | 1          |
+      | Stakeholder | PT Maju Jaya                   |
+      | Group Name  | Tim Alpha                      |
       | Description | Proyek ini dibuat via automasi.|
     And User selects "Projek Aplikasi Dasar 1" from the dropdown
     And User submits the project

@@ -1,55 +1,37 @@
 package stepdefinitions;
 
 import com.aventstack.extentreports.Status;
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.*;
 import org.junit.Assert;
-import org.openqa.selenium.WebDriver;
-import pages.AddStakeHolderPage;
+import pages.AddStakeholderPage;
 import pages.HomePage;
-import pages.LoginPage;
+import pages.StakeholderListPage;
 import utils.TestContext;
+
+import java.nio.file.Paths;
+import java.util.Map;
 
 public class ManageStakeholderSteps {
 
     private final TestContext context;
-    private final WebDriver driver;
-    private final LoginPage loginPage;
     private final HomePage homePage;
-    private final AddStakeHolderPage addStakeholderPage;
+    private final AddStakeholderPage addStakeholderPage;
+    private final StakeholderListPage stakeholderListPage;
 
     public ManageStakeholderSteps(TestContext context) {
         this.context = context;
-        this.driver = context.getDriver();
-        this.loginPage = new LoginPage(driver);
-        this.homePage = new HomePage(driver);
-        this.addStakeholderPage = new AddStakeHolderPage(driver);
+        this.homePage = new HomePage(context.getDriver());
+        this.addStakeholderPage = new AddStakeholderPage(context.getDriver());
+        this.stakeholderListPage = new StakeholderListPage(context.getDriver());
     }
 
-    // CATATAN: Langkah ini sama dengan di AddProjectSteps, Cucumber akan menemukan dan menggunakannya kembali.
-    @Given("User is logged in with valid credentials")
-    public void userIsLoggedInWithValidCredentials() {
-        if (!homePage.isOnDashboard()) { // Hanya login jika belum di dashboard
-            driver.get("https://simapro.fahrulhehehe.my.id/login");
-            loginPage.enterEmail("syafiq.abdillah@ugm.ac.id");
-            loginPage.enterPassword("adminpassword");
-            loginPage.clickLogin();
-            Assert.assertTrue("Login failed, not on dashboard.", homePage.isOnDashboard());
-            context.getTest().log(Status.INFO, "User successfully logged in.");
+    @When("User clicks on the {string} button on the homepage")
+    public void userClicksOnTheButtonOnTheHomepage(String buttonText) {
+        if (buttonText.equalsIgnoreCase("Add Profil Stakeholder")) {
+            homePage.clickAddStakeholderButton();
         }
-    }
-
-    @Given("User is on the stakeholder list page")
-    public void userIsOnTheStakeholderListPage() {
-        driver.get("https://simapro.fahrulhehehe.my.id/stakeholder");
-        context.getTest().log(Status.INFO, "Navigated to Stakeholder List page.");
-    }
-
-    @When("User clicks the {string} button")
-    public void userClicksTheButton(String buttonName) {
-        if (buttonName.equalsIgnoreCase("Add Stakeholder")) {
-            homePage.clickAddStakeholderButton(); // Asumsi tombol ini ada di HomePage atau halaman stakeholder
-            context.getTest().log(Status.INFO, "Clicked 'Add Stakeholder' button.");
-        }
+        context.getTest().log(Status.INFO, "Clicked '" + buttonText + "' button.");
     }
 
     @Then("User should be redirected to the add stakeholder page")
@@ -58,57 +40,62 @@ public class ManageStakeholderSteps {
         context.getTest().log(Status.PASS, "Successfully redirected to Add Stakeholder page.");
     }
 
-    @When("User fills the stakeholder form with unique valid data")
-    public void userFillsTheStakeholderFormWithUniqueValidData() {
-        // Membuat nama dan email unik untuk setiap eksekusi tes
-        String uniqueName = "Stakeholder " + System.currentTimeMillis();
-        String uniqueEmail = "stakeholder" + System.currentTimeMillis() + "@test.com";
-
-        // Simpan nama unik ke context untuk digunakan di langkah selanjutnya
+    @When("User uploads a profile image and enters the following stakeholder details:")
+    public void userUploadsAProfileImageAndEntersTheFollowingStakeholderDetails(DataTable dataTable) {
+        Map<String, String> data = dataTable.asMap();
+        String uniqueName = data.get("Name") + " " + System.currentTimeMillis();
         context.set("newStakeholderName", uniqueName);
-
+        String imagePath = Paths.get("src/test/resources/test_data/stakeholder_photo.png").toAbsolutePath().toString();
+        addStakeholderPage.uploadProfileImage(imagePath);
         addStakeholderPage.enterName(uniqueName);
-        addStakeholderPage.selectType("Internal");
-        addStakeholderPage.enterContact("08123456789");
-        addStakeholderPage.enterStakeholderEmail(uniqueEmail);
+        addStakeholderPage.enterEmail(data.get("Email"));
+        addStakeholderPage.enterContact(data.get("Number"));
         context.getTest().log(Status.INFO, "Filled stakeholder form with unique name: " + uniqueName);
     }
 
-    @When("User clicks the submit button")
-    public void userClicksTheSubmitButton() {
+    @And("User selects {string} as the category")
+    public void userSelectsAsTheCategory(String category) {
+        addStakeholderPage.selectCategory(category);
+        context.getTest().log(Status.INFO, "Selected category: " + category);
+    }
+
+    @And("User clicks the submit stakeholder button")
+    public void userClicksTheSubmitStakeholderButton() {
         addStakeholderPage.clickSubmitButton();
         context.getTest().log(Status.INFO, "Clicked the submit button.");
     }
 
-    @Then("User should be redirected back to the stakeholder list page")
-    public void userShouldBeRedirectedBackToTheStakeholderListPage() {
-        // Verifikasi bisa berdasarkan URL atau elemen khas di halaman list
-        Assert.assertTrue("URL is not for the stakeholder list page.", driver.getCurrentUrl().contains("/stakeholder"));
-        context.getTest().log(Status.PASS, "Successfully redirected back to stakeholder list.");
+    @Then("User should be redirected to the stakeholder list page")
+    public void userShouldBeRedirectedToTheStakeholderListPage() {
+        Assert.assertTrue("Not redirected to the stakeholder list page.", stakeholderListPage.isOnStakeholderListPage());
+        context.getTest().log(Status.PASS, "Successfully redirected to stakeholder list page.");
     }
 
-    @Then("The new stakeholder should appear in the list")
+    @And("The new stakeholder should appear in the list")
     public void theNewStakeholderShouldAppearInTheList() {
-        // Ambil nama yang disimpan dari context
         String stakeholderName = (String) context.get("newStakeholderName");
-        boolean isVisible = addStakeholderPage.isStakeholderVisibleInList(stakeholderName);
+        boolean isVisible = stakeholderListPage.isStakeholderVisibleInList(stakeholderName);
         Assert.assertTrue("Newly added stakeholder '" + stakeholderName + "' is not visible in the list.", isVisible);
-        context.getTest().log(Status.PASS, "Verified that new stakeholder '" + stakeholderName + "' is in the list.");
+        context.getTest().log(Status.PASS, "Verified that new stakeholder '" + stakeholderName + "' appears in the list.");
     }
 
-    @When("User searches for the newly added stakeholder")
-    public void userSearchesForTheNewlyAddedStakeholder() {
-        String stakeholderName = (String) context.get("newStakeholderName");
-        Assert.assertNotNull("Could not find stakeholder name from context to search for.", stakeholderName);
-        addStakeholderPage.searchFor(stakeholderName);
-        context.getTest().log(Status.INFO, "Searched for stakeholder: " + stakeholderName);
+    @When("User leaves the stakeholder form empty")
+    public void userLeavesTheStakeholderFormEmpty() {
+        // Tidak ada aksi yang dilakukan, ini adalah langkah yang disengaja.
+        context.getTest().log(Status.INFO, "Leaving form empty as per the test case.");
     }
 
-    @Then("Only the searched stakeholder should be displayed in the results")
-    public void onlyTheSearchedStakeholderShouldBeDisplayedInTheResults() {
-        // Memastikan hanya ada satu baris hasil yang tampil
-        int rowCount = addStakeholderPage.getVisibleRowCount();
-        Assert.assertEquals("Search result should display exactly 1 row, but found " + rowCount + ".", 1, rowCount);
-        context.getTest().log(Status.PASS, "Verified that search result contains exactly one record.");
+    @Then("a {string} message should be displayed")
+    public void aMessageShouldBeDisplayed(String expectedMessage) {
+        String actualMessage = addStakeholderPage.getFailedModalMessage();
+
+        Assert.assertTrue(
+                "Pesan error modal tidak sesuai. Expected to contain: '" + expectedMessage + "', Actual: '" + actualMessage + "'",
+                actualMessage.toLowerCase().contains(expectedMessage.toLowerCase())
+        );
+
+        context.getTest().log(Status.PASS, "Validation message appeared as expected: " + actualMessage);
+
+        addStakeholderPage.closeFailedModal();
     }
 }

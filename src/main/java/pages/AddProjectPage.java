@@ -10,7 +10,7 @@ public class AddProjectPage {
     private final WebDriver driver;
     private final WebDriverWait wait;
 
-    // ... (Semua lokator Anda sudah benar dan tidak perlu diubah) ...
+    // Locators
     private final By pageVerificationElement = By.xpath("//label[@for='project-name']");
     private final By uploadImageInput = By.id("image-upload-1");
     private final By projectNameField = By.id("project-name");
@@ -33,10 +33,8 @@ public class AddProjectPage {
 
     public AddProjectPage(WebDriver driver) {
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(15)); // Increased default wait time slightly
     }
-
-    // ... (Metode lain tidak perlu diubah) ...
 
     public boolean isOnAddProjectPage() {
         try {
@@ -65,10 +63,50 @@ public class AddProjectPage {
 
     public void enterStakeholder(String stakeholder) {
         wait.until(ExpectedConditions.visibilityOfElementLocated(stakeholderField)).sendKeys(stakeholder);
+
+        By stakeholderOptionLocator = By.xpath(String.format("//div[contains(@class, 'cursor-pointer')]//div[text()='%s']", stakeholder));
+        WebElement optionElement = wait.until(ExpectedConditions.presenceOfElementLocated(stakeholderOptionLocator));
+
+        try {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", optionElement);
+            wait.until(ExpectedConditions.elementToBeClickable(optionElement));
+            Thread.sleep(300); // Small delay for UI stabilization
+            optionElement.click();
+        } catch (ElementClickInterceptedException e) {
+            System.out.println("Standard click failed for stakeholder option '" + stakeholder + "', trying JavaScript click.");
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", optionElement);
+        } catch (TimeoutException toe) {
+            System.err.println("Timeout waiting for stakeholder option '" + stakeholder + "' to be clickable. Trying JavaScript click.");
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", optionElement);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted while selecting stakeholder: " + stakeholder);
+            throw new RuntimeException("Interrupted during stakeholder selection", e);
+        }
     }
 
     public void enterGroupName(String groupName) {
         wait.until(ExpectedConditions.visibilityOfElementLocated(groupNameField)).sendKeys(groupName);
+
+        By groupOptionLocator = By.xpath(String.format("//div[contains(@class, 'cursor-pointer')]//div[text()='%s']", groupName));
+        WebElement optionElement = wait.until(ExpectedConditions.presenceOfElementLocated(groupOptionLocator));
+
+        try {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", optionElement);
+            wait.until(ExpectedConditions.elementToBeClickable(optionElement));
+            Thread.sleep(300); // Small delay for UI stabilization
+            optionElement.click();
+        } catch (ElementClickInterceptedException e) {
+            System.out.println("Standard click failed for group name option '" + groupName + "', trying JavaScript click.");
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", optionElement);
+        } catch (TimeoutException toe) {
+            System.err.println("Timeout waiting for group name option '" + groupName + "' to be clickable. Trying JavaScript click.");
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", optionElement);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted while selecting group name: " + groupName);
+            throw new RuntimeException("Interrupted during group name selection", e);
+        }
     }
 
     public void enterDescription(String description) {
@@ -85,43 +123,37 @@ public class AddProjectPage {
             } catch (ElementClickInterceptedException e) {
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", dropdownBtn);
             }
+
             By optionLocator = By.xpath(String.format("//button[@role='menuitem' and text()='%s']", projectType));
-            wait.until(ExpectedConditions.elementToBeClickable(optionLocator)).click();
+            WebElement optionElement = wait.until(ExpectedConditions.presenceOfElementLocated(optionLocator));
+
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", optionElement);
+            wait.until(ExpectedConditions.elementToBeClickable(optionElement));
+            Thread.sleep(200); // Brief pause
+            optionElement.click();
+
         } catch (Exception e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            System.err.println("Gagal memilih '" + projectType + "' dari dropdown.");
-            throw new RuntimeException(e);
+            System.err.println("Gagal memilih '" + projectType + "' dari dropdown: " + e.getMessage());
+            throw new RuntimeException("Failed to select project type: " + projectType, e);
         }
     }
 
-    /**
-     * === METODE SUBMIT DIPERBAIKI DENGAN LOGIKA SCROLL DAN JAVASCRIPT CLICK ===
-     */
     public void submitForm() {
         try {
-            // 1. Temukan tombol "Submit" awal
             WebElement initialBtn = wait.until(ExpectedConditions.presenceOfElementLocated(initialSubmitButton));
-
-            // 2. Scroll tombol tersebut ke tengah layar untuk memastikan tidak terhalang
             ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", initialBtn);
-
-            // 3. Beri jeda singkat untuk stabilisasi
             Thread.sleep(300);
-
-            // 4. Coba klik tombol "Submit" awal, dengan fallback JavaScript
             try {
                 initialBtn.click();
             } catch (ElementClickInterceptedException e) {
                 System.out.println("Klik tombol Submit awal gagal, mencoba dengan JavaScript.");
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", initialBtn);
             }
-
-            // 5. Setelah modal muncul, tunggu dan klik tombol konfirmasi final
             wait.until(ExpectedConditions.visibilityOfElementLocated(confirmationModal));
             wait.until(ExpectedConditions.elementToBeClickable(finalSubmitButton)).click();
-
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Proses submit terganggu.", e);

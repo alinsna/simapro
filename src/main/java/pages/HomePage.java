@@ -39,34 +39,25 @@ public class HomePage {
     }
 
     /**
-     * Metode bantuan yang diperbarui sesuai dengan pola yang Anda minta.
-     * Logika: Scroll 250px ke bawah, lalu tunggu elemen hingga bisa diklik.
+     * Metode scroll dan klik yang lebih andal: scroll langsung ke elemen agar pasti terlihat,
+     * lalu klik (fallback ke JS jika gagal).
      *
      * @param locator Lokator (By) dari elemen yang ingin diklik.
      */
     private void scrollToElementAndClick(By locator) {
         try {
-            // 1. Lakukan scroll ke bawah sejauh 250px (sesuai permintaan)
-            // Casting driver ke JavascriptExecutor
-            JavascriptExecutor js = (JavascriptExecutor) driver;
-            js.executeScript("window.scrollBy(0, 550);");
-            System.out.println("Melakukan scroll ke bawah sejauh 250px.");
-
-            // 2. Tunggu elemen muncul dan bisa diklik setelah scroll
-            // Menggunakan instance 'wait' yang sudah ada di kelas
+            WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+            // Scroll langsung ke elemen agar benar-benar masuk viewport
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
+            // Tunggu sampai elemen bisa diklik
             WebElement button = wait.until(ExpectedConditions.elementToBeClickable(locator));
-            System.out.println("Elemen ditemukan dan bisa diklik: " + locator);
-
-            // 3. Lakukan klik, dengan fallback ke JavaScript jika ada interupsi
             try {
                 button.click();
             } catch (ElementClickInterceptedException e) {
-                System.out.println("Klik normal gagal, mencoba klik dengan JavaScript.");
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", button);
             }
-
         } catch (TimeoutException e) {
-            System.err.println("ERROR: Elemen dengan lokator '" + locator + "' tidak ditemukan dalam 10 detik setelah scroll 250px.");
+            System.err.println("ERROR: Elemen dengan lokator '" + locator + "' tidak ditemukan atau tidak bisa diklik.");
             throw new RuntimeException("Gagal menemukan atau mengklik elemen setelah scroll: " + locator, e);
         }
     }

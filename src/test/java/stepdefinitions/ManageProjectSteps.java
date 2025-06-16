@@ -13,7 +13,7 @@ import utils.TestContext;
 import java.nio.file.Paths;
 import java.util.Map;
 
-public class AddProjectSteps {
+public class ManageProjectSteps {
 
     private final TestContext context;
     private final WebDriver driver;
@@ -21,7 +21,7 @@ public class AddProjectSteps {
     private final HomePage homePage;
     private final AddProjectPage addProjectPage;
 
-    public AddProjectSteps(TestContext context) {
+    public ManageProjectSteps(TestContext context) {
         this.context = context;
         this.driver = context.getDriver();
         this.loginPage = new LoginPage(driver);
@@ -29,10 +29,7 @@ public class AddProjectSteps {
         this.addProjectPage = new AddProjectPage(driver);
     }
 
-    // Metode ini dipanggil dari file ManageStakeholderSteps.java, jadi tidak perlu ditulis ulang.
-    // @Given("User is logged in with valid credentials") ...
-
-    @When("User scrolls down on the homepage and clicks on add new project button")
+    @Given("User scrolls down on the homepage and clicks on add new project button")
     public void userScrollsAndClicksAddNewProject() {
         homePage.clickAddNewProjectButton();
         context.getTest().log(Status.INFO, "Clicked 'Add New Project' button.");
