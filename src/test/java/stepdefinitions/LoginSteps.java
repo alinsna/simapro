@@ -1,127 +1,73 @@
 package stepdefinitions;
 
-import io.cucumber.java.After;
-import io.cucumber.java.Before;
+import com.aventstack.extentreports.Status;
 import io.cucumber.java.en.*;
 import org.junit.Assert;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
+import pages.HomePage;
 import pages.LoginPage;
-import io.github.bonigarcia.wdm.WebDriverManager;
-
-import java.time.Duration;
-
-import static org.junit.Assert.*;
+import utils.TestContext;
 
 public class LoginSteps {
 
-    WebDriver driver;
-    LoginPage loginPage;
+    private final TestContext context;
+    private final LoginPage loginPage;
+    private final HomePage homePage;
+    private final WebDriver driver;
 
-    @Before
-    public void setup() {
-        WebDriverManager.chromedriver().setup(); // Otomatis download driver yang sesuai
-        driver = new ChromeDriver();
-        driver.manage().window().maximize();
-    }
+    // Disarankan untuk menyimpan URL di file properti terpisah
+    private static final String LOGIN_URL = "https://simapro.fahrulhehehe.my.id/login";
 
-    @After
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
+    public LoginSteps(TestContext context) {
+        this.context = context;
+        this.driver = context.getDriver();
+        this.loginPage = new LoginPage(driver);
+        this.homePage = new HomePage(driver);
     }
 
     @Given("User is on the login page")
-    public void userIsOnLoginPage() {
-        driver.get("https://simapro.fahrulhehehe.my.id/login"); // URL sistem login kamu
-        loginPage = new LoginPage(driver);
+    public void userIsOnTheLoginPage() {
+        driver.get(LOGIN_URL);
+        context.getTest().log(Status.INFO, "Navigated to login page: " + LOGIN_URL);
     }
 
-    @When("User enters valid email and password")
-    public void userEntersValidCredentials() {
-        loginPage.enterEmail("syafiq.abdillah@ugm.ac.id");
-        loginPage.enterPassword("adminpassword");
-    }
-
-    @When("User enters invalid email {string} and valid password")
-    public void userEntersInvalidEmail(String email) {
+    @When("User enters email {string} and password {string}")
+    public void userEntersEmailAndPassword(String email, String password) {
         loginPage.enterEmail(email);
-        loginPage.enterPassword("adminpassword");
-    }
-
-    @When("User enters valid email and incorrect password {string}")
-    public void userEntersIncorrectPassword(String password) {
-        loginPage.enterEmail("syafiq.abdillah@ugm.ac.id");
         loginPage.enterPassword(password);
-    }
 
-    @When("User leaves email and password fields empty")
-    public void userLeavesFieldsEmpty() {
-        loginPage.enterEmail("");
-        loginPage.enterPassword("");
-    }
-
-    @When("User enters boundary email {string} and valid password")
-    public void userEntersBoundaryEmail(String email) {
-        loginPage.enterEmail(email);
-        loginPage.enterPassword("adminpassword");
+        // Menjaga keamanan dengan tidak mencatat password ke log
+        String emailLog = email.isEmpty() ? "[EMPTY]" : email;
+        context.getTest().log(Status.INFO, "Entered email: " + emailLog + " and password: [HIDDEN]");
     }
 
     @And("User clicks the login button")
-    public void userClicksLoginButton() {
+    public void userClicksTheLoginButton() {
         loginPage.clickLogin();
+        context.getTest().log(Status.INFO, "Clicked the login button.");
     }
 
     @Then("User should be redirected to the dashboard")
-    public void userShouldBeRedirected() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.urlContains("/home"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("/home"));
+    public void userShouldBeRedirectedToTheDashboard() {
+        boolean onDashboard = homePage.isOnDashboard();
+        Assert.assertTrue("User was not redirected to the dashboard.", onDashboard);
+        context.getTest().log(Status.PASS, "Successfully redirected to the dashboard.");
     }
 
-    @Then("An email format error should be displayed")
-    public void emailFormatErrorDisplayed() {
-        // Periksa jika alert muncul dan tutup dulu
-        String alertText = loginPage.getAlertTextIfPresent();
-        if (alertText != null) {
-            System.out.println("Alert ditemukan: " + alertText);
-            Assert.assertEquals("Login failed", alertText);
-            return;
+    @Then("An error message containing {string} should be displayed")
+    public void anErrorMessageContainingShouldBeDisplayed(String expectedMessage) {
+        String actualMessage = loginPage.getAlertTextIfPresent();
+        if (actualMessage == null) {
+            actualMessage = loginPage.getErrorMessage();
         }
 
-        // Validasi pesan error di halaman
-        assertTrue(loginPage.getErrorMessage().toLowerCase().contains("email"));
-    }
+        Assert.assertNotNull("No error message was displayed.", actualMessage);
 
-    @Then("An invalid credential error should be displayed")
-    public void invalidCredentialErrorDisplayed() {
-        // Cek jika ada alert "Login failed"
-        String alertText = loginPage.getAlertTextIfPresent();
-        if (alertText != null) {
-            System.out.println("Alert ditemukan: " + alertText);
-            Assert.assertTrue(alertText.toLowerCase().contains("login failed"));
-            return;
-        }
-
-        // Kalau tidak ada alert, cari pesan error biasa
-        String msg = loginPage.getErrorMessage().toLowerCase();
-        assertTrue(msg.contains("invalid") || msg.contains("salah") || msg.contains("tidak"));
-    }
-
-    @Then("Required field validation should be displayed")
-    public void requiredFieldValidationDisplayed() {
-        // Periksa alert terlebih dahulu
-        String alertText = loginPage.getAlertTextIfPresent();
-        if (alertText != null) {
-            System.out.println("Alert ditemukan: " + alertText);
-            Assert.assertTrue(alertText.toLowerCase().contains("login failed") || alertText.toLowerCase().contains("required"));
-            return;
-        }
-
-        // Jika tidak ada alert, validasi pesan error di halaman
-        assertTrue(loginPage.getErrorMessage().toLowerCase().contains("required"));
+        boolean isMessageCorrect = actualMessage.toLowerCase().contains(expectedMessage.toLowerCase());
+        Assert.assertTrue(
+                String.format("Error message did not contain the expected text. Expected: '%s', Actual: '%s'", expectedMessage, actualMessage),
+                isMessageCorrect
+        );
+        context.getTest().log(Status.PASS, "Correct error message was displayed: " + actualMessage);
     }
 }

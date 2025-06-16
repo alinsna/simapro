@@ -1,151 +1,117 @@
 package stepdefinitions;
 
-import pages.LoginPage;
-import pages.AddProjectPage;
-import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import java.time.Duration;
+import com.aventstack.extentreports.Status;
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.*;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.interactions.Actions;
+import org.junit.Assert;
+import org.openqa.selenium.WebDriver;
+import pages.AddProjectPage;
+import pages.HomePage;
+import pages.LoginPage;
+import utils.TestContext;
+
+import java.nio.file.Paths;
+import java.util.Map;
 
 public class AddProjectSteps {
 
-    WebDriver driver = new ChromeDriver();
-    LoginPage loginPage = new LoginPage(driver);
-    AddProjectPage addProjectPage = new AddProjectPage(driver);
+    private final TestContext context;
+    private final WebDriver driver;
+    private final LoginPage loginPage;
+    private final HomePage homePage;
+    private final AddProjectPage addProjectPage;
 
-    @Given("User is logged in with valid credentials")
-    public void userIsLoggedInWithValidCredentials() {
-        driver.get("https://simapro.fahrulhehehe.my.id/login");
-        driver.manage().window().maximize();
-        loginPage.enterEmail("syafiq.abdillah@ugm.ac.id");
-        loginPage.enterPassword("adminpassword");
-        loginPage.clickLogin();
-
-        // Handle alert after login
-        String alertText = loginPage.getAlertTextIfPresent();
-        if (alertText != null) {
-            System.out.println("Alert message: " + alertText);
-        }
+    public AddProjectSteps(TestContext context) {
+        this.context = context;
+        this.driver = context.getDriver();
+        this.loginPage = new LoginPage(driver);
+        this.homePage = new HomePage(driver);
+        this.addProjectPage = new AddProjectPage(driver);
     }
 
+    // Metode ini dipanggil dari file ManageStakeholderSteps.java, jadi tidak perlu ditulis ulang.
+    // @Given("User is logged in with valid credentials") ...
+
     @When("User scrolls down on the homepage and clicks on add new project button")
-    public void userScrollsDownAndClicksAddNewProjectButton() {
-        driver.get("https://simapro.fahrulhehehe.my.id/home");
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-
-        // Scroll down to reveal the button
-        js.executeScript("window.scrollBy(0, 250)", "");
-
-        // Use WebDriverWait to wait until the "Add New Project" button is clickable
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));  // Selenium 4.x
-        WebElement addNewProjectButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(text(),'Add New Project')]")));
-
-        // Click the add project button
-        addNewProjectButton.click();
+    public void userScrollsAndClicksAddNewProject() {
+        homePage.clickAddNewProjectButton();
+        context.getTest().log(Status.INFO, "Clicked 'Add New Project' button.");
     }
 
     @Then("User is redirected to the add project page")
-    public void userIsRedirectedToAddProjectPage() {
-        String currentUrl = driver.getCurrentUrl();
-        assert currentUrl.equals("https://simapro.fahrulhehehe.my.id/home/project/add-project");
+    public void userIsRedirectedToTheAddProjectPage() {
+        Assert.assertTrue("Not redirected to the Add Project page.", addProjectPage.isOnAddProjectPage());
+        context.getTest().log(Status.PASS, "Successfully redirected to the add project page.");
     }
 
-    @When("User uploads an image and enters project details")
-    public void userUploadsImageAndEntersProjectDetails() {
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        for (int i = 0; i < 60; i++) {js.executeScript("window.scrollBy(0, 500)", "");}
-        // Wait for the elements to be visible and clickable before interacting
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    @When("User uploads an image and enters the following project details:")
+    public void userUploadsImageAndEntersProjectDetails(DataTable dataTable) {
+        Map<String, String> data = dataTable.asMap();
+        String uniqueProjectName = data.get("Project Name") + " - " + System.currentTimeMillis();
+        context.set("newProjectName", uniqueProjectName);
 
-        // Upload image 1
-        WebElement inputImage1 = driver.findElement(By.cssSelector("input#image-upload-1")); // Find input element
-        inputImage1.sendKeys("C:/Users/fiqab/Downloads/web.jpeg"); // Set path to the image file
+        addProjectPage.scrollToForm();
 
-        // Upload image 2
-        WebElement inputImage2 = driver.findElement(By.cssSelector("input#image-upload-2"));
-        inputImage2.sendKeys("C:/Users/fiqab/Downloads/web.jpeg");
+        String imagePath = Paths.get("src/test/resources/test_data/project_image.png").toAbsolutePath().toString();
 
-        // Upload image 3
-        WebElement inputImage3 = driver.findElement(By.cssSelector("input#image-upload-3"));
-        inputImage3.sendKeys("C:/Users/fiqab/Downloads/web.jpeg");
+        addProjectPage.uploadImage(imagePath);
+        addProjectPage.enterProjectName(uniqueProjectName);
+        addProjectPage.enterYear(data.get("Year"));
+        addProjectPage.enterStakeholder(data.get("Stakeholder"));
+        addProjectPage.enterGroupName(data.get("Group Name"));
+        addProjectPage.enterDescription(data.get("Description"));
 
-        // Upload image 4
-        WebElement inputImage4 = driver.findElement(By.cssSelector("input#image-upload-4"));
-        inputImage4.sendKeys("C:/Users/fiqab/Downloads/web.jpeg");
-
-        // Upload image 5
-        WebElement inputImage5 = driver.findElement(By.cssSelector("input#image-upload-5"));
-        inputImage5.sendKeys("C:/Users/fiqab/Downloads/web.jpeg");
-
-        // Enter project name
-        WebElement projectNameField = driver.findElement(By.id("project-name"));
-        projectNameField.clear();
-        projectNameField.sendKeys("Project ABC");
-
-        // Enter year
-        WebElement yearField = driver.findElement(By.id("year"));
-        yearField.clear();
-        yearField.sendKeys("2022");
-
-        // Enter stakeholder
-        WebElement stakeholderField = driver.findElement(By.id("stakeholder"));
-        stakeholderField.clear();
-        stakeholderField.sendKeys("Stakeholder Name");
-
-        // Enter group name
-        WebElement groupNameField = driver.findElement(By.id("group-name"));
-        groupNameField.clear();
-        groupNameField.sendKeys("Group Name");
-
-        // Enter description
-        WebElement descriptionField = driver.findElement(By.id("description"));
-        descriptionField.clear();
-        descriptionField.sendKeys("This is a test description.");
+        context.getTest().log(Status.INFO, "Filled in all project details for project: " + uniqueProjectName);
     }
 
-    @When("User selects a project from the dropdown")
-    public void userSelectsProject() {
-        Actions actions = new Actions(driver);
-
-        // Mengirimkan tombol Page Down berulang untuk menggulirkan halaman
-        for (int i = 0; i < 2; i++) {
-            actions.sendKeys(Keys.PAGE_DOWN).perform();
-        }
-
-        // Wait for the "Select Project" button to be clickable and click it
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement selectProjectButton1 = wait.until(ExpectedConditions.elementToBeClickable(By.id("headlessui-menu-button-:Rf4kvfff9tkq:")));
-        selectProjectButton1.click();
-
-        // Wait for the dropdown items to be visible and clickable
-        WebElement projectOption1 = wait.until(ExpectedConditions.elementToBeClickable(By.id("headlessui-menu-item-:r0:")));
-        projectOption1.click();  // Click "Projek Aplikasi Dasar 1"
-
-        // Alternatively, you can select "Projek Aplikasi Dasar 2" if you need to test the other option
-        // WebElement projectOption2 = wait.until(ExpectedConditions.elementToBeClickable(By.id("headlessui-menu-item-:r1:")));
-        // projectOption2.click();
+    /**
+     * === INI METODE YANG HILANG/BELUM TERSIMPAN ===
+     * Error terjadi karena metode untuk langkah ini belum ada di file Anda.
+     * Kode di bawah ini adalah implementasi yang benar.
+     */
+    @When("User selects {string} from the dropdown")
+    public void userSelectsAProjectFromTheDropdown(String projectType) {
+        addProjectPage.selectProjectType(projectType);
+        context.getTest().log(Status.INFO, "Selected '" + projectType + "' from the dropdown.");
     }
 
     @And("User submits the project")
     public void userSubmitsTheProject() {
-
-        // Menunggu dan menekan tombol 'Submit'
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement submitButton1 = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[@data-modal-toggle='defaultModal']")));
-        submitButton1.click(); // Klik tombol Submit
-
-        // Menunggu tombol 'Yes, I'm sure' untuk muncul dan menekan tombol tersebut
-        WebElement yesButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[@data-modal-hide='defaultModal']")));
-        yesButton.click(); // Klik tombol "Yes, I'm sure"
+        addProjectPage.submitForm();
+        context.getTest().log(Status.INFO, "Submitted the project form.");
     }
 
     @Then("The project is added successfully")
     public void theProjectIsAddedSuccessfully() {
-        // Verify success message or project list update here
+        String successMessage = addProjectPage.getSuccessModalMessage();
+
+        Assert.assertNotNull("Success modal did not appear.", successMessage);
+        Assert.assertTrue("Success message is incorrect. Actual: '" + successMessage + "'",
+                successMessage.toLowerCase().contains("project upload success"));
+        context.getTest().log(Status.PASS, "Verified that project was added successfully. Message: " + successMessage);
+        addProjectPage.closeSuccessModal();
     }
 
+    @When("User leaves all project detail fields empty")
+    public void userLeavesAllProjectDetailFieldsEmpty() {
+        // Tidak melakukan apa-apa adalah aksi yang diinginkan.
+        // Cukup scroll untuk memastikan tombol submit terlihat.
+        addProjectPage.scrollToForm();
+        context.getTest().log(Status.INFO, "Leaving all fields empty to test validation.");
+    }
+
+    @Then("a {string} message should be displayed in the modal")
+    public void aMessageShouldBeDisplayedInTheModal(String expectedMessage) {
+        String actualMessage = addProjectPage.getFailedModalMessage();
+
+        Assert.assertTrue(
+                "Pesan error modal tidak sesuai. Expected to contain: '" + expectedMessage + "', Actual: '" + actualMessage + "'",
+                actualMessage.toLowerCase().contains(expectedMessage.toLowerCase())
+        );
+
+        context.getTest().log(Status.PASS, "Validation message appeared as expected: " + actualMessage);
+
+        // Tutup modal setelah verifikasi agar tidak mengganggu tes selanjutnya
+        addProjectPage.closeFailedModal();
+    }
 }
